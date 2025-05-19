@@ -93,17 +93,23 @@ export async function POST(request: NextRequest) {
       console.log("Product saved to database:", product._id);
       
       return NextResponse.json({ product }, { status: 201 });
-    } catch (uploadError: any) {
+    } catch (uploadError: unknown) {
       console.error("Unexpected error during upload:", uploadError);
+      const errorMessage = uploadError instanceof Error 
+        ? uploadError.message 
+        : String(uploadError);
       return NextResponse.json(
-        { error: `Unexpected upload error: ${uploadError.message || JSON.stringify(uploadError)}` },
+        { error: `Unexpected upload error: ${errorMessage}` },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating product:", error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : String(error);
     return NextResponse.json(
-      { error: `Failed to create product: ${error.message || JSON.stringify(error)}` },
+      { error: `Failed to create product: ${errorMessage}` },
       { status: 500 }
     );
   }
