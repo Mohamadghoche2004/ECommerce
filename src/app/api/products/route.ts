@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectMongo from "../../../../lib/mongodb";
 import Product from "../../../../models/Product";
-import { writeFile } from "fs/promises";
-import path from "path";
+import supabase from "../../../../lib/supabase";
 
 // GET all products
 export async function GET() {
@@ -22,11 +21,20 @@ export async function GET() {
 // POST a new product
 export async function POST(request: NextRequest) {
   try {
+    console.log("Starting product creation process");
+    
+    // Verify Supabase connection
+    console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("Supabase Key present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    
     await connectMongo();
+    console.log("MongoDB connected successfully");
     
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const image = formData.get("image") as File;
+    
+    console.log("Form data received:", { name, imageReceived: !!image });
     
     if (!name || !image) {
       return NextResponse.json(
@@ -38,26 +46,64 @@ export async function POST(request: NextRequest) {
     // Create unique filename
     const timestamp = Date.now();
     const filename = `${timestamp}-${image.name.replace(/\s+/g, "-")}`;
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    console.log("Generated filename:", filename);
     
-    // Save the image to the file system
+    // Convert image to buffer for Supabase upload
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const filePath = path.join(uploadDir, filename);
-    await writeFile(filePath, buffer);
+    console.log("Converted image to buffer, size:", buffer.length);
     
-    // Save product to database
-    const imageUrl = `/uploads/${filename}`;
-    const product = await Product.create({
-      name,
-      imageUrl
-    });
-    
-    return NextResponse.json({ product }, { status: 201 });
-  } catch (error) {
+    try {
+      console.log("Attempting to upload to Supabase bucket: 'images'");
+      // Upload to Supabase Storage
+      const { error } = await supabase
+        .storage
+        .from('images')
+        .upload(filename, buffer, {
+          contentType: image.type,
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error("Supabase Storage upload error:", error);
+        return NextResponse.json(
+          { error: `Failed to upload image: ${error.message}` },
+          { status: 500 }
+        );
+      }
+      
+      console.log("File uploaded successfully to Supabase");
+      
+      // Get public URL for the uploaded file
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('images')
+        .getPublicUrl(filename);
+      
+      console.log("Got public URL:", publicUrlData.publicUrl);
+      
+      // Save product to database
+      const imageUrl = publicUrlData.publicUrl;
+      const product = await Product.create({
+        name,
+        imageUrl
+      });
+      
+      console.log("Product saved to database:", product._id);
+      
+      return NextResponse.json({ product }, { status: 201 });
+    } catch (uploadError: any) {
+      console.error("Unexpected error during upload:", uploadError);
+      return NextResponse.json(
+        { error: `Unexpected upload error: ${uploadError.message || JSON.stringify(uploadError)}` },
+        { status: 500 }
+      );
+    }
+  } catch (error: any) {
     console.error("Error creating product:", error);
     return NextResponse.json(
-      { error: "Failed to create product" },
+      { error: `Failed to create product: ${error.message || JSON.stringify(error)}` },
       { status: 500 }
     );
   }
