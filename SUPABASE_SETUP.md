@@ -6,7 +6,7 @@ Make sure you have the following environment variables set up in your Vercel dep
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_ANON=your-supabase-anon-key
 MONGODB_URI=your-mongodb-connection-string
 ```
 
@@ -27,7 +27,7 @@ MONGODB_URI=your-mongodb-connection-string
 
 3. Update your environment variables:
    - Make sure `NEXT_PUBLIC_SUPABASE_URL` contains your Supabase project URL (e.g., `https://xxxxxxxxxxxx.supabase.co`)
-   - Make sure `NEXT_PUBLIC_SUPABASE_ANON_KEY` contains your Supabase anon key
+   - Make sure `NEXT_PUBLIC_SUPABASE_ANON` contains your Supabase anon key
    - Make sure to add these in Vercel project settings under Environment Variables
 
 4. Deploy your application

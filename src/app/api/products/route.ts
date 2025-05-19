@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     
     // Verify Supabase connection
     console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("Supabase Key present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    console.log("Supabase Key present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON);
     
     await connectMongo();
     console.log("MongoDB connected successfully");
